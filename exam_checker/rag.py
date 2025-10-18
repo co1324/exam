@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, List
 
 from .config import SystemConfig
@@ -72,7 +72,7 @@ class RAGPipeline:
 
     config: SystemConfig
     knowledge_base: KnowledgeBase
-    llm_client: LLMClient = LLMClient()
+    llm_client: LLMClient = field(default_factory=LLMClient)
 
     def generate_page_report(self, page_text: str) -> str:
         logger.debug("Generating report for page with %s characters", len(page_text))
