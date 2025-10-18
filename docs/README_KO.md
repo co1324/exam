@@ -138,3 +138,49 @@ pip install pillow pdf2image pdfminer.six PyPDF2 pytesseract numpy opencv-python
 4. `output/inspection_report.*` 파일에서 결과를 확인한다.
 
 문제가 해결되지 않거나 기능 확장이 필요하면 소스 코드를 참고해 `SystemConfig`와 각 모듈(`exam_checker/`)을 커스터마이징하세요.
+
+---
+
+## 11. Git 충돌(Conflict) 해결 예시
+
+GitHub에서 `exam_checker/rag.py` 파일에 충돌이 발생한 화면이 보이면 아래 순서를 따르세요.
+
+1. **현재 브랜치와 원격 상태 확인**
+   ```bash
+   git status
+   ```
+   `both modified: exam_checker/rag.py` 같은 메시지가 있는지 확인합니다.
+
+2. **충돌 파일 열기**
+   ```bash
+   code exam_checker/rag.py  # VS Code 예시, 원하는 편집기를 사용하세요.
+   ```
+   파일 안에는 `<<<<<<<`, `=======`, `>>>>>>>`와 같은 구분선이 표시됩니다.
+
+3. **원하는 코드만 남기기**
+   - `<<<<<<<`와 `=======` 사이가 현재 브랜치 내용, `=======`와 `>>>>>>>` 사이가 병합하려는 브랜치 내용입니다.
+   - 스크린샷 상황에서는 `from dataclasses import dataclass`와 `field`를 함께 사용해야 하므로,
+     ```python
+     from dataclasses import dataclass, field
+     ```
+     한 줄만 남기고 나머지 중복된 줄과 `<<<<<<<`, `=======`, `>>>>>>>` 구분선도 모두 삭제합니다.
+
+4. **정상 구문인지 확인**
+   ```bash
+   python -m compileall exam_checker/rag.py
+   ```
+   오류가 없다면 충돌이 올바르게 해결된 것입니다.
+
+5. **충돌 해결 결과 저장 및 커밋**
+   ```bash
+   git add exam_checker/rag.py
+   git commit -m "Resolve merge conflict in rag pipeline"
+   ```
+
+6. **필요 시 원격 저장소에 푸시**
+   ```bash
+   git push
+   ```
+   이렇게 하면 GitHub에서 더 이상 충돌 경고가 뜨지 않습니다.
+
+위 과정을 다른 파일에도 동일하게 적용하면 모든 충돌을 해결할 수 있습니다.
