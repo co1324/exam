@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>평행도선 전자력 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax 라이브러리 추가 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+        }
+        canvas {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            touch-action: none;
+        }
+        .control-panel {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-slate-800">평행도선 전자력 시뮬레이션</h1>
+            <p class="text-slate-600 mt-2">두 도선의 전류 방향에 따른 흡인력과 반발력을 확인하세요.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- 시뮬레이션 캔버스 영역 -->
+            <div class="lg:col-span-3 flex flex-col gap-4">
+                <canvas id="simCanvas" class="w-full h-[500px]"></canvas>
+                
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                    <h3 class="font-bold text-blue-800 mb-4 text-lg border-b border-blue-200 pb-2">물리학 가이드 및 공식</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ul class="text-sm text-blue-700 space-y-2">
+                            <li>• <strong>흡인력 (인력):</strong> 두 도선의 전류 방향이 같으면 서로를 당깁니다.</li>
+                            <li>• <strong>반발력 (척력):</strong> 두 도선의 전류 방향이 반대면 서로를 밀어냅니다.</li>
+                            <li>• <strong>전류와 힘:</strong> 전류가 강해질수록 화살표($F$)가 길어지며 힘이 강해집니다.</li>
+                            <li>• <strong>거리와 힘:</strong> 도선 사이의 거리가 가까울수록 힘이 강해집니다.</li>
+                        </ul>
+                        <div class="bg-white p-4 rounded-md border border-blue-200 shadow-sm text-center">
+                            <p class="text-xs text-slate-500 mb-2 uppercase tracking-tighter">단위 길이당 작용하는 힘 공식</p>
+                            <div class="text-xl font-serif text-slate-800 my-2">
+                                $$F = \frac{\mu_0 I_1 I_2}{2\pi d}$$
+                            </div>
+                            <div class="text-[11px] text-slate-600 text-left mt-2 space-y-1">
+                                <p>$F$: 단위 길이당 힘 ($\text{N/m}$)</p>
+                                <p>$I_1, I_2$: 각 도선에 흐르는 전류 ($\text{A}$)</p>
+                                <p>$d$: 도선 사이의 거리 ($\text{m}$)</p>
+                                <p>$\mu_0$: 진공의 투자율 ($4\pi \times 10^{-7} \text{ T·m/A}$)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 컨트롤 패널 -->
+            <div class="control-panel p-6 flex flex-col gap-8 h-fit">
+                <!-- 도선 1 설정 -->
+                <div class="space-y-4">
+                    <h2 class="font-bold text-lg border-b pb-2 text-red-600">도선 1 (왼쪽)</h2>
+                    <div>
+                        <label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                            전류 세기 ($I_1$) <span id="val1" class="font-mono">50</span>
+                        </label>
+                        <input type="range" id="current1" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="dir1Up" class="flex-1 py-2 rounded transition font-bold active:scale-95">↑ 위로</button>
+                        <button id="dir1Down" class="flex-1 py-2 rounded transition font-bold active:scale-95">↓ 아래로</button>
+                    </div>
+                </div>
+
+                <!-- 도선 2 설정 -->
+                <div class="space-y-4">
+                    <h2 class="font-bold text-lg border-b pb-2 text-blue-600">도선 2 (오른쪽)</h2>
+                    <div>
+                        <label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                            전류 세기 ($I_2$) <span id="val2" class="font-mono">50</span>
+                        </label>
+                        <input type="range" id="current2" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="dir2Up" class="flex-1 py-2 rounded transition font-bold active:scale-95">↑ 위로</button>
+                        <button id="dir2Down" class="flex-1 py-2 rounded transition font-bold active:scale-95">↓ 아래로</button>
+                    </div>
+                </div>
+
+                <!-- 거리 설정 -->
+                <div class="space-y-4">
+                    <h2 class="font-bold text-lg border-b pb-2 text-slate-800">거리 조절</h2>
+                    <div>
+                        <label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                            도선 간 거리 ($d$) <span id="valD" class="font-mono">180</span>
+                        </label>
+                        <input type="range" id="distance" min="80" max="400" value="180" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-600">
+                    </div>
+                </div>
+                
+                <div id="forceResult" class="mt-4 p-4 rounded-xl bg-slate-900 text-center text-white border border-slate-700 shadow-inner">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Calculated Force</div>
+                    <div class="text-2xl font-bold"><span id="forceValue">0</span> <span class="text-sm font-normal text-slate-400 ml-1">N/m</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const inputs = {
+            c1: document.getElementById('current1'),
+            c2: document.getElementById('current2'),
+            dist: document.getElementById('distance'),
+            v1: document.getElementById('val1'),
+            v2: document.getElementById('val2'),
+            vD: document.getElementById('valD'),
+            fVal: document.getElementById('forceValue')
+        };
+
+        // 상태 변수
+        let state = {
+            wire1: { x: 0, current: 50, direction: 1 }, // 1: 위, -1: 아래
+            wire2: { x: 0, current: 50, direction: 1 },
+            distance: 180,
+            time: 0
+        };
+
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+            
+            document.getElementById('dir1Up').onclick = () => setDirection(1, 1);
+            document.getElementById('dir1Down').onclick = () => setDirection(1, -1);
+            document.getElementById('dir2Up').onclick = () => setDirection(2, 1);
+            document.getElementById('dir2Down').onclick = () => setDirection(2, -1);
+
+            updateUI();
+            requestAnimationFrame(animate);
+        }
+
+        function resize() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = 500;
+        }
+
+        function setDirection(wireNum, dir) {
+            if (wireNum === 1) {
+                state.wire1.direction = dir;
+                document.getElementById('dir1Up').className = dir === 1 
+                    ? 'flex-1 py-2 rounded bg-red-500 text-white font-bold shadow-md' 
+                    : 'flex-1 py-2 rounded bg-gray-100 text-gray-600 font-bold hover:bg-gray-200';
+                document.getElementById('dir1Down').className = dir === -1 
+                    ? 'flex-1 py-2 rounded bg-red-500 text-white font-bold shadow-md' 
+                    : 'flex-1 py-2 rounded bg-gray-100 text-gray-600 font-bold hover:bg-gray-200';
+            } else {
+                state.wire2.direction = dir;
+                document.getElementById('dir2Up').className = dir === 1 
+                    ? 'flex-1 py-2 rounded bg-blue-500 text-white font-bold shadow-md' 
+                    : 'flex-1 py-2 rounded bg-gray-100 text-gray-600 font-bold hover:bg-gray-200';
+                document.getElementById('dir2Down').className = dir === -1 
+                    ? 'flex-1 py-2 rounded bg-blue-500 text-white font-bold shadow-md' 
+                    : 'flex-1 py-2 rounded bg-gray-100 text-gray-600 font-bold hover:bg-gray-200';
+            }
+        }
+
+        function updateUI() {
+            state.wire1.current = parseFloat(inputs.c1.value);
+            state.wire2.current = parseFloat(inputs.c2.value);
+            state.distance = parseFloat(inputs.dist.value);
+            
+            inputs.v1.innerText = state.wire1.current;
+            inputs.v2.innerText = state.wire2.current;
+            inputs.vD.innerText = state.distance;
+
+            setDirection(1, state.wire1.direction);
+            setDirection(2, state.wire2.direction);
+        }
+
+        function drawArrowhead(x, y, angle, size, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-size, -size/1.5);
+            ctx.lineTo(-size, size/1.5);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawWire(x, color, current, direction, label) {
+            // 도선 본체
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.moveTo(x, 60);
+            ctx.lineTo(x, canvas.height - 60);
+            ctx.stroke();
+
+            // 도선 라벨
+            ctx.fillStyle = color;
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, 40);
+
+            // 전류 흐름 애니메이션
+            if (current > 0) {
+                const speed = (current / 50) * 2.5;
+                const offset = (state.time * speed * -direction) % 40;
+                
+                ctx.fillStyle = color;
+                for (let y = 70 + offset; y < canvas.height - 60; y += 40) {
+                    if (y > 70 && y < canvas.height - 70) {
+                        drawArrowhead(x, y, direction === 1 ? -Math.PI/2 : Math.PI/2, 10, color);
+                    }
+                }
+            }
+        }
+
+        function drawForceArrow(x, direction, magnitude, color) {
+            if (magnitude < 2) return;
+            const arrowLen = Math.min(magnitude * 1.5, state.distance / 2 - 5);
+            const y = canvas.height / 2;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 5;
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + direction * arrowLen, y);
+            ctx.stroke();
+            
+            drawArrowhead(x + direction * arrowLen, y, direction === 1 ? 0 : Math.PI, 14, color);
+            
+            // F 라벨을 화살표 중간 지점 위쪽으로 배치하여 겹침 방지
+            ctx.fillStyle = color;
+            ctx.font = 'italic bold 18px serif';
+            ctx.textAlign = 'center';
+            // 화살표가 짧을 때는 도선 근처에, 길 때는 화살표 중앙에 위치
+            const labelX = x + direction * (arrowLen / 2);
+            ctx.fillText("F", labelX, y - 12);
+        }
+
+        function animate() {
+            state.time++;
+            updateUI();
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const midX = canvas.width / 2;
+            state.wire1.x = midX - state.distance / 2;
+            state.wire2.x = midX + state.distance / 2;
+
+            // 도선 그리기
+            drawWire(state.wire1.x, '#ef4444', state.wire1.current, state.wire1.direction, "도선 1");
+            drawWire(state.wire2.x, '#3b82f6', state.wire2.current, state.wire2.direction, "도선 2");
+
+            // 계산
+            const forceMag = (state.wire1.current * state.wire2.current) / (state.distance / 12);
+            const isAttractive = state.wire1.direction === state.wire2.direction;
+            
+            inputs.fVal.innerText = (forceMag / 10).toFixed(2);
+
+            // 힘의 화살표
+            if (forceMag > 0.5) {
+                if (isAttractive) {
+                    drawForceArrow(state.wire1.x, 1, forceMag, '#b91c1c');
+                    drawForceArrow(state.wire2.x, -1, forceMag, '#1d4ed8');
+                } else {
+                    drawForceArrow(state.wire1.x, -1, forceMag, '#b91c1c');
+                    drawForceArrow(state.wire2.x, 1, forceMag, '#1d4ed8');
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
